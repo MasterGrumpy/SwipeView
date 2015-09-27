@@ -30,8 +30,8 @@ ext {
 
     libraryDescription = 'Android swipe view library (Tinder like)'
 
-    siteUrl = 'https://github.com/dev-grumpy/SwipeView'
-    gitUrl = 'https://github.com/dev-grumpy/SwipeView.git'
+    siteUrl = 'https://github.com/grumpy-dev/SwipeView'
+    gitUrl = 'https://github.com/grumpy-dev/SwipeView.git'
 
     libraryVersion = '0.1'
 
