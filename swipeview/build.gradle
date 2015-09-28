@@ -7,7 +7,7 @@ android {
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 0
-        versionName "0.1"
+        versionName "0.0.1"
     }
     buildTypes {
         release {
@@ -19,13 +19,12 @@ android {
     }
 }
 
-
 ext {
-    bintrayRepo = 'maven'
+    bintrayRepo = 'powa'
     bintrayName = 'swipeview'
 
-    publishedGroupId = 'com.powa'
-    libraryName = 'SwipeView'
+    publishedGroupId = 'com.powa.ui'
+    libraryName = 'swipeview'
     artifact = 'swipeview'
 
     libraryDescription = 'Android swipe view library (Tinder like)'
@@ -33,7 +32,7 @@ ext {
     siteUrl = 'https://github.com/grumpy-dev/SwipeView'
     gitUrl = 'https://github.com/grumpy-dev/SwipeView.git'
 
-    libraryVersion = '0.1'
+    libraryVersion = '0.0.1'
 
     developerId = 'grumpy-dev'
     developerName = 'Luc Betrand'
