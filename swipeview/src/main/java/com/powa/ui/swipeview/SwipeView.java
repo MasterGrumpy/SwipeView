@@ -188,7 +188,7 @@ protected void onLayout(boolean changed, int l, int t, int r, int b) {
 
 @Override
 public boolean onTouchEvent(MotionEvent event) {
-  if (mCurrentView == null || event == null) {
+  if (mCurrentView == null) {
     return false;
   }
 
@@ -204,11 +204,6 @@ public boolean onTouchEvent(MotionEvent event) {
 
       float dx = x - mLastTouchX;
       float dy = y - mLastTouchY;
-
-      // filter micro movements
-      if (Math.abs(dx) > mTouchSlop && Math.abs(dy) > mTouchSlop) {
-        return true;
-      }
 
       mCurrentView.setTranslationX(mCurrentView.getTranslationX() + dx);
       mCurrentView.setTranslationY(mCurrentView.getTranslationY() + dy);
@@ -262,10 +257,23 @@ public boolean onTouchEvent(MotionEvent event) {
 @Override
 public boolean onInterceptTouchEvent(MotionEvent event) {
   switch (event.getActionMasked()) {
-    case MotionEvent.ACTION_MOVE:
-      return true;
+    case MotionEvent.ACTION_MOVE: {
+      int pointerIndex = event.findPointerIndex(mActivePointerId);
+      float x = event.getX(pointerIndex);
+      float y = event.getY(pointerIndex);
 
-    case MotionEvent.ACTION_DOWN:
+      float dx = x - mLastTouchX;
+      float dy = y - mLastTouchY;
+
+      // filter micro movements
+      if (Math.abs(dx) > mTouchSlop && Math.abs(dy) > mTouchSlop) {
+        return true;
+      }
+      return false;
+    }
+
+
+    case MotionEvent.ACTION_DOWN: {
       int pointerIndex = event.getActionIndex();
       float x = event.getX(pointerIndex);
       float y = event.getY(pointerIndex);
@@ -274,6 +282,7 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
       mActivePointerId = event.getPointerId(pointerIndex);
       mVelocityTracker = VelocityTracker.obtain();
       break;
+    }
   }
 
   return false;
