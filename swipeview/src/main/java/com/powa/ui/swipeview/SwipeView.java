@@ -289,10 +289,13 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
 }
 
 private void recycleView(View v) {
+  removeViewInLayout(v);
   if (mRecyclerViews.size() < 10) {
     mRecyclerViews.add(v);
+    v.setRotation(0);
+    v.setTranslationX(0);
+    v.setTranslationY(0);
   }
-  removeViewInLayout(v);
 }
 
 @Override
