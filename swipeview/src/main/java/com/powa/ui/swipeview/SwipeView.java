@@ -13,6 +13,7 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 
 import java.util.Stack;
@@ -195,6 +196,7 @@ public boolean onTouchEvent(MotionEvent event) {
   switch (event.getActionMasked()) {
     case MotionEvent.ACTION_DOWN:
       break;
+
     case MotionEvent.ACTION_MOVE: {
       mVelocityTracker.addMovement(event);
 
@@ -207,35 +209,15 @@ public boolean onTouchEvent(MotionEvent event) {
 
       mCurrentView.setTranslationX(mCurrentView.getTranslationX() + dx);
       mCurrentView.setTranslationY(mCurrentView.getTranslationY() + dy);
-      mCurrentView.setRotation(45 * mCurrentView.getTranslationX() / (getWidth() / 2.f));
+
+      float xProgress = Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth());
+      mCurrentView.setRotation(45 * xProgress);
 
       mLastTouchX = x;
       mLastTouchY = y;
       break;
     }
-    case MotionEvent.ACTION_UP:
-    case MotionEvent.ACTION_CANCEL: {
-      mVelocityTracker.computeCurrentVelocity(1);
 
-      float xVelocity = mVelocityTracker.getXVelocity(mActivePointerId);
-      boolean gotoNextView = Math.abs(xVelocity) > 0.5;
-
-      if (gotoNextView) {
-        dismissCurrentView(xVelocity > 0);
-      } else {
-        mCurrentView.animate().
-            setDuration(250).
-            translationX(0).
-            translationY(0).
-            rotation(0).
-            setInterpolator(new AccelerateInterpolator());
-      }
-
-      mActivePointerId = INVALID_POINTER_ID;
-      mVelocityTracker.recycle();
-      mVelocityTracker = null;
-      break;
-    }
     case MotionEvent.ACTION_POINTER_UP: {
       int pointerIndex = event.getActionIndex();
       int pointerId = event.getPointerId(pointerIndex);
@@ -249,7 +231,49 @@ public boolean onTouchEvent(MotionEvent event) {
       }
       break;
     }
-  }
+
+    case MotionEvent.ACTION_UP:
+    case MotionEvent.ACTION_CANCEL: {
+      mVelocityTracker.computeCurrentVelocity(1);
+
+      float xVelocity = mVelocityTracker.getXVelocity(mActivePointerId);
+      float xProgress = Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth());
+
+      // TODO(grumpy-dev): make them parameters
+      final float minVelocity = 0.5f;
+      final float minProgress = 0.2f;
+      final float minStandingProgress = 0.4f;
+
+      boolean likeView = false;
+      boolean dislikeView = false;
+
+      // fast to the right, card already on the right side
+      likeView |= xVelocity > minVelocity && xProgress > minProgress;
+      // no more velocity, but card extremely to the right
+      likeView |= xProgress > minStandingProgress;
+
+      // fast to the left, card already on the left side
+      dislikeView |= xVelocity < -minVelocity && xProgress < -minProgress;
+      // no more velocity, but card extremely to the left
+      dislikeView |= xProgress < -minStandingProgress;
+
+      if (likeView || dislikeView) {
+        dismissCurrentView(likeView);
+      } else {
+        mCurrentView.animate().
+            setDuration(250).
+            translationX(0).
+            translationY(0).
+            rotation(0).
+            setInterpolator(new DecelerateInterpolator());
+      }
+
+      mActivePointerId = INVALID_POINTER_ID;
+      mVelocityTracker.recycle();
+      mVelocityTracker = null;
+      break;
+    }
+ }
 
   return true;
 }
@@ -266,7 +290,7 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
       float dy = y - mLastTouchY;
 
       // filter micro movements
-      if (Math.abs(dx) > mTouchSlop && Math.abs(dy) > mTouchSlop) {
+      if (Math.abs(dx) > mTouchSlop || Math.abs(dy) > mTouchSlop) {
         return true;
       }
       return false;
@@ -315,18 +339,13 @@ public void dismissCurrentView(boolean like) {
     else viewHolder.getEventListener().onDislike(viewHolder);
   }
 
-  float progress = (mCurrentView.getWidth() - Math.abs(mCurrentView.getTranslationX())) / (float) mCurrentView.getWidth();
-  if (progress < 0) progress = 0;
-  if (progress > 1) progress = 1;
-
   int sign = like ? 1 : -1;
-
   mCurrentView.animate().
-      setDuration((long) (500 * progress)).
+      setDuration(500).
       translationXBy(Math.copySign(getWidth() * 2, sign)).
       translationYBy(getHeight() / 4).
       rotation(Math.copySign(45, sign)).
-      setInterpolator(new AccelerateInterpolator()).
+      setInterpolator(new DecelerateInterpolator()).
       setListener(new AnimatorListenerAdapter() {
         @Override
         public void onAnimationCancel(Animator animation) {

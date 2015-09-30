@@ -13,7 +13,9 @@ public void setOnEventListener(OnEventListener listener) {
 
 public interface OnEventListener {
   void onLike(ViewHolder viewHolder);
+
   void onDislike(ViewHolder viewHolder);
+
   void OnClick(ViewHolder viewHolder);
 }
 
