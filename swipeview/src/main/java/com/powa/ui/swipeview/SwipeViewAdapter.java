@@ -39,10 +39,10 @@ public void setItems(List<T> items) {
 
 @Override
 public Object getItem(int position) {
-  if (position < mData.size()) {
-    return mData.get(position);
+  if (position < 0 || position >= mData.size()) {
+    return null;
   }
-  return null;
+  return mData.get(position);
 }
 
 @Override

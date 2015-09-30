@@ -12,7 +12,6 @@ import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 
@@ -21,22 +20,20 @@ import java.util.Stack;
 public class SwipeView extends AdapterView<SwipeViewAdapter> {
 
 private static final int INVALID_POINTER_ID = -1;
+
+;
 private int mActivePointerId = INVALID_POINTER_ID;
 private SwipeViewAdapter mAdapter;
 private int mMaxViewPreloaded = 4;
-
 private float mLastTouchX;
 private float mLastTouchY;
-
-private View mCurrentView;
 private ViewHolder mCurrentViewHolder;
-
+private View mCurrentView;
+private View mNextView;
 private int mTouchSlop;
 private int mCurrentAdapterPosition;
 private VelocityTracker mVelocityTracker;
-
 private Stack<View> mRecyclerViews = new Stack<>();
-
 private final DataSetObserver mDataSetObserver = new DataSetObserver() {
   @Override
   public void onChanged() {
@@ -51,6 +48,7 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
     clear();
   }
 };
+private SwipeListener mSwipeListener = new DefaultSwipeListener();
 
 public SwipeView(Context context) {
   super(context);
@@ -63,7 +61,6 @@ public SwipeView(Context context, AttributeSet attrs) {
   initFromXml(attrs);
   init();
 }
-
 
 public SwipeView(Context context, AttributeSet attrs, int defStyle) {
   super(context, attrs, defStyle);
@@ -96,39 +93,50 @@ public void setAdapter(SwipeViewAdapter adapter) {
     mAdapter.unregisterDataSetObserver(mDataSetObserver);
 
   clear();
-  setCurrentView(null, null);
-  mAdapter = adapter;
   mCurrentAdapterPosition = 0;
+  updateCurrentView();
+  mAdapter = adapter;
   adapter.registerDataSetObserver(mDataSetObserver);
 
   ensureFull();
 }
 
+public void setSwipeListener(SwipeListener l) {
+  mSwipeListener = l;
+}
+
 private void ensureFull() {
   for (int pos = getChildCount(); pos + mCurrentAdapterPosition < mAdapter.getCount() && pos < mMaxViewPreloaded; ++pos) {
-
     View view = null;
     if (!mRecyclerViews.isEmpty()) {
       view = mRecyclerViews.pop();
     }
     view = mAdapter.getView(pos + mCurrentAdapterPosition, view, this);
-
+    view.setVisibility(GONE);
     view.setLayerType(LAYER_TYPE_SOFTWARE, null);
     addViewInLayout(view, 0, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT), true);
   }
 
-  if (getChildCount() != 0) {
-    setCurrentView(getChildAt(getChildCount() - 1), (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition));
-  }
+  updateCurrentView();
   requestLayout();
 }
 
-private void setCurrentView(View view, ViewHolder viewHolder) {
-  mCurrentView = view;
-  mCurrentViewHolder = viewHolder;
+private void updateCurrentView() {
+  if (mCurrentAdapterPosition < 0 || mAdapter == null || mCurrentAdapterPosition >= getAdapter().getCount()) {
+    mCurrentView = null;
+    mCurrentViewHolder = null;
+    mNextView = null;
+  } else {
+    final int currentViewPosition = getChildCount() - 1; // always the last view of the stack
+
+    mCurrentView = getChildAt(currentViewPosition);
+    mCurrentViewHolder = (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition);
+    mNextView = getChildAt(currentViewPosition - 1);
+  }
 
   if (mCurrentView != null) {
     mCurrentView.setLayerType(LAYER_TYPE_HARDWARE, null);
+    mCurrentView.setVisibility(VISIBLE);
     mCurrentView.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -138,12 +146,19 @@ private void setCurrentView(View view, ViewHolder viewHolder) {
       }
     });
   }
+
+  if (mNextView != null) {
+    mNextView.setVisibility(VISIBLE);
+    mNextView.setLayerType(LAYER_TYPE_HARDWARE, null);
+  }
 }
 
 private void clear() {
   removeAllViewsInLayout();
   mCurrentAdapterPosition = 0;
-  setCurrentView(null, null);
+  mCurrentView = null;
+  mCurrentViewHolder = null;
+  mNextView = null;
 }
 
 public int getMaxViewPreloaded() {
@@ -206,13 +221,9 @@ public boolean onTouchEvent(MotionEvent event) {
 
       float dx = x - mLastTouchX;
       float dy = y - mLastTouchY;
-
-      mCurrentView.setTranslationX(mCurrentView.getTranslationX() + dx);
-      mCurrentView.setTranslationY(mCurrentView.getTranslationY() + dy);
-
-      float xProgress = Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth());
-      mCurrentView.setRotation(45 * xProgress);
-
+      float xProgress = Math.max(-1f, Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth()));
+      float yProgress = Math.max(-1.f, Math.min(1.f, mCurrentView.getTranslationY() / (float) mCurrentView.getHeight()));
+      mSwipeListener.OnSwipe(mCurrentView, mNextView, xProgress, yProgress, dx, dy);
       mLastTouchX = x;
       mLastTouchY = y;
       break;
@@ -237,35 +248,27 @@ public boolean onTouchEvent(MotionEvent event) {
       mVelocityTracker.computeCurrentVelocity(1);
 
       float xVelocity = mVelocityTracker.getXVelocity(mActivePointerId);
-      float xProgress = Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth());
+      float yVelocity = mVelocityTracker.getYVelocity(mActivePointerId);
+      float xProgress = Math.max(-1f, Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth()));
+      float yProgress = Math.max(-1.f, Math.min(1.f, mCurrentView.getTranslationY() / (float) mCurrentView.getHeight()));
 
-      // TODO(grumpy-dev): make them parameters
-      final float minVelocity = 0.5f;
-      final float minProgress = 0.2f;
-      final float minStandingProgress = 0.4f;
+      SwipeListener.SwipeEvent swipeEvent = mSwipeListener.OnSwipeEnd(mCurrentView, mNextView, xProgress, yProgress, xVelocity, yVelocity);
 
-      boolean likeView = false;
-      boolean dislikeView = false;
-
-      // fast to the right, card already on the right side
-      likeView |= xVelocity > minVelocity && xProgress > minProgress;
-      // no more velocity, but card extremely to the right
-      likeView |= xProgress > minStandingProgress;
-
-      // fast to the left, card already on the left side
-      dislikeView |= xVelocity < -minVelocity && xProgress < -minProgress;
-      // no more velocity, but card extremely to the left
-      dislikeView |= xProgress < -minStandingProgress;
-
-      if (likeView || dislikeView) {
-        dismissCurrentView(likeView);
-      } else {
-        mCurrentView.animate().
-            setDuration(250).
-            translationX(0).
-            translationY(0).
-            rotation(0).
-            setInterpolator(new DecelerateInterpolator());
+      switch (swipeEvent) {
+        case NONE:
+          mCurrentView.animate().
+              setDuration(250).
+              translationX(0).
+              translationY(0).
+              rotation(0).
+              setInterpolator(new DecelerateInterpolator());
+          break;
+        case DISLIKE:
+          dismissCurrentView(false);
+          break;
+        case LIKE:
+          dismissCurrentView(true);
+          break;
       }
 
       mActivePointerId = INVALID_POINTER_ID;
@@ -273,8 +276,7 @@ public boolean onTouchEvent(MotionEvent event) {
       mVelocityTracker = null;
       break;
     }
- }
-
+  }
   return true;
 }
 
@@ -291,6 +293,7 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
 
       // filter micro movements
       if (Math.abs(dx) > mTouchSlop || Math.abs(dy) > mTouchSlop) {
+        mSwipeListener.OnSwipeStart(mCurrentView, mNextView);
         return true;
       }
       return false;
@@ -342,7 +345,7 @@ public void dismissCurrentView(boolean like) {
   int sign = like ? 1 : -1;
   mCurrentView.animate().
       setDuration(500).
-      translationXBy(Math.copySign(getWidth() * 2, sign)).
+      translationXBy(Math.copySign(getWidth() * 1.5f, sign)).
       translationYBy(getHeight() / 4).
       rotation(Math.copySign(45, sign)).
       setInterpolator(new DecelerateInterpolator()).
@@ -360,4 +363,41 @@ public void dismissCurrentView(boolean like) {
         }
       });
 }
+
+public class DefaultSwipeListener implements SwipeListener {
+  @Override
+  public void OnSwipeStart(View currentView, View nextView) {
+  }
+
+  @Override
+  public void OnSwipe(View currentView, View nextView, float px, float py, float dx, float dy) {
+    currentView.setTranslationX(currentView.getTranslationX() + dx);
+    currentView.setTranslationY(currentView.getTranslationY() + dy);
+    currentView.setRotation(45 * px);
+  }
+
+  @Override
+  public SwipeEvent OnSwipeEnd(View currentView, View nextView, float px, float py, float vx, float vy) {
+    // TODO(grumpy-dev): make them parameters
+    final float minVelocity = 0.5f;
+    final float minProgress = 0.2f;
+    final float minStandingProgress = 0.4f;
+
+    boolean likeView = false;
+    boolean dislikeView = false;
+
+    // fast to the right, card already on the right side
+    likeView |= vx > minVelocity && px > minProgress;
+    // no more velocity, but card extremely to the right
+    likeView |= px > minStandingProgress;
+
+    // fast to the left, card already on the left side
+    dislikeView |= vx < -minVelocity && px < -minProgress;
+    // no more velocity, but card extremely to the left
+    dislikeView |= px < -minStandingProgress;
+
+    return likeView ? SwipeEvent.LIKE : dislikeView ? SwipeEvent.DISLIKE : SwipeEvent.NONE;
+  }
+}
+
 }
