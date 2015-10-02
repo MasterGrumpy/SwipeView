@@ -7,6 +7,7 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -21,7 +22,6 @@ public class SwipeView extends AdapterView<SwipeViewAdapter> {
 
 private static final int INVALID_POINTER_ID = -1;
 
-;
 private int mActivePointerId = INVALID_POINTER_ID;
 private SwipeViewAdapter mAdapter;
 private int mMaxViewPreloaded = 4;
@@ -38,7 +38,21 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
   @Override
   public void onChanged() {
     super.onChanged();
-    clear();
+    int currentItemPosition = mAdapter.getItemPosition(mCurrentViewHolder);
+    if (currentItemPosition == -1) {
+      clear();
+    } else {
+      mCurrentAdapterPosition = currentItemPosition;
+      // TODO optimize to avoid recreation of the following items if they didn't change
+      for (int i = 0; i < getChildCount();) {
+        View v = getChildAt(i);
+        if (v != mCurrentView) {
+          recycleView(v);
+        } else {
+          ++i;
+        }
+      }
+    }
     ensureFull();
   }
 
@@ -76,7 +90,7 @@ private void init() {
 
 private void initFromXml(AttributeSet attr) {
   TypedArray a = getContext().obtainStyledAttributes(attr,
-      R.styleable.SwipeView);
+          R.styleable.SwipeView);
 
   setMaxViewPreloaded(a.getInteger(R.styleable.SwipeView_maxViewPreloaded, 4));
   a.recycle();
@@ -94,11 +108,11 @@ public void setAdapter(SwipeViewAdapter adapter) {
 
   clear();
   mCurrentAdapterPosition = 0;
-  updateCurrentView();
   mAdapter = adapter;
-  adapter.registerDataSetObserver(mDataSetObserver);
 
   ensureFull();
+
+  adapter.registerDataSetObserver(mDataSetObserver);
 }
 
 public void setSwipeListener(SwipeListener l) {
@@ -106,12 +120,14 @@ public void setSwipeListener(SwipeListener l) {
 }
 
 private void ensureFull() {
-  for (int pos = getChildCount(); pos + mCurrentAdapterPosition < mAdapter.getCount() && pos < mMaxViewPreloaded; ++pos) {
+  int adapterCount = mAdapter.getCount();
+  int currentAdapterPosition = mCurrentAdapterPosition;
+  for (int pos = getChildCount(); pos + currentAdapterPosition < adapterCount && pos < mMaxViewPreloaded; ++pos) {
     View view = null;
     if (!mRecyclerViews.isEmpty()) {
       view = mRecyclerViews.pop();
     }
-    view = mAdapter.getView(pos + mCurrentAdapterPosition, view, this);
+    view = mAdapter.getView(pos + currentAdapterPosition, view, this);
     view.setVisibility(GONE);
     view.setLayerType(LAYER_TYPE_SOFTWARE, null);
     addViewInLayout(view, 0, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT), true);
@@ -150,6 +166,12 @@ private void updateCurrentView() {
   if (mNextView != null) {
     mNextView.setVisibility(VISIBLE);
     mNextView.setLayerType(LAYER_TYPE_HARDWARE, null);
+  }
+}
+
+private void checkStarvation () {
+  if (mCurrentAdapterPosition+mMaxViewPreloaded >= mAdapter.getCount()) {
+    mAdapter.onStarve(mCurrentAdapterPosition);
   }
 }
 
@@ -317,7 +339,8 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
 
 private void recycleView(View v) {
   removeViewInLayout(v);
-  if (mRecyclerViews.size() < 10) {
+  //TODO fix recycling
+  if (mRecyclerViews.size() < 0) {
     mRecyclerViews.add(v);
     v.setRotation(0);
     v.setTranslationX(0);
@@ -361,11 +384,14 @@ public void dismissCurrentView(boolean like) {
 
         @Override
         public void onAnimationEnd(Animator animation) {
+          //TODO fix issue when swipe too fast
           recycleView(mCurrentView);
           ++mCurrentAdapterPosition;
           ensureFull();
+          checkStarvation();
         }
       });
+
 }
 
 public class DefaultSwipeListener implements SwipeListener {

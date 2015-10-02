@@ -20,31 +20,7 @@ protected void onCreate(Bundle savedInstanceState) {
 
   SwipeView v = (SwipeView) findViewById(R.id.swipeView);
   ColorViewAdapter adapter = new ColorViewAdapter(this);
-
-  String[] colors = {
-    "red", "blue", "yellow", "green", "black", "grey"
-  };
-
-  for (int i = 0; i < 30; ++i) {
-    ColorViewHolder h = new ColorViewHolder(colors[i%colors.length]);
-    h.setOnEventListener(new ViewHolder.OnEventListener() {
-      @Override
-      public void onLike(ViewHolder viewHolder) {
-        Toast.makeText(SwipeActivity.this, "Like",Toast.LENGTH_SHORT).show();
-      }
-
-      @Override
-      public void onDislike(ViewHolder viewHolder) {
-        Toast.makeText(SwipeActivity.this, "DisLike",Toast.LENGTH_SHORT).show();
-      }
-
-      @Override
-      public void OnClick(ViewHolder viewHolder) {
-
-      }
-    });
-    adapter.add(h);
-  }
+  adapter.onStarve(0);
   v.setAdapter(adapter);
 }
 

@@ -60,6 +60,11 @@ public View getView(int position, View convertView, ViewGroup parent) {
   return getView(position, (T) getItem(position), convertView, parent);
 }
 
+public int getItemPosition (ViewHolder item) {
+  return mData.indexOf(item);
+}
+
+public abstract void onStarve(int position);
 public abstract View getView(int position, T viewHolder, View convertView, ViewGroup parent);
 
 }
