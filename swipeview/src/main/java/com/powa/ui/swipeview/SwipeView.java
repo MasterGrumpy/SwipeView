@@ -7,7 +7,6 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.Rect;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -16,6 +15,8 @@ import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 public class SwipeView extends AdapterView<SwipeViewAdapter> {
@@ -34,6 +35,7 @@ private int mTouchSlop;
 private int mCurrentAdapterPosition;
 private VelocityTracker mVelocityTracker;
 private Stack<View> mRecyclerViews = new Stack<>();
+
 private final DataSetObserver mDataSetObserver = new DataSetObserver() {
   @Override
   public void onChanged() {
@@ -43,14 +45,18 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
       clear();
     } else {
       mCurrentAdapterPosition = currentItemPosition;
-      // TODO optimize to avoid recreation of the following items if they didn't change
-      for (int i = 0; i < getChildCount();) {
-        View v = getChildAt(i);
-        if (v != mCurrentView) {
-          recycleView(v);
-        } else {
-          ++i;
+      int childCount = getChildCount();
+      List<View> toRemove = new ArrayList<>();
+      for (int i = 0; i < childCount; ++i) {
+        View v = getChildAt(childCount - i - 1);
+        ViewHolder h = (ViewHolder) mAdapter.getItem(i);
+        if (h == null || h.getView() == null || v != h.getView()) {
+          toRemove.add(v);
         }
+      }
+
+      for (View v : toRemove) {
+        recycleView(v);
       }
     }
     ensureFull();
@@ -169,8 +175,8 @@ private void updateCurrentView() {
   }
 }
 
-private void checkStarvation () {
-  if (mCurrentAdapterPosition+mMaxViewPreloaded >= mAdapter.getCount()) {
+private void checkStarvation() {
+  if (mCurrentAdapterPosition + mMaxViewPreloaded >= mAdapter.getCount()) {
     mAdapter.onStarve(mCurrentAdapterPosition);
   }
 }
@@ -279,11 +285,11 @@ public boolean onTouchEvent(MotionEvent event) {
       switch (swipeEvent) {
         case NONE:
           mCurrentView.animate().
-              setDuration(250).
-              translationX(0).
-              translationY(0).
-              rotation(0).
-              setInterpolator(new DecelerateInterpolator());
+                  setDuration(250).
+                  translationX(0).
+                  translationY(0).
+                  rotation(0).
+                  setInterpolator(new DecelerateInterpolator());
           break;
         case DISLIKE:
           dismissCurrentView(false);
@@ -371,26 +377,26 @@ public void dismissCurrentView(boolean like) {
 
   int sign = like ? 1 : -1;
   mCurrentView.animate().
-      setDuration(500).
-      translationXBy(Math.copySign(getWidth() * 1.5f, sign)).
-      translationYBy(getHeight() / 4).
-      rotation(Math.copySign(45, sign)).
-      setInterpolator(new DecelerateInterpolator()).
-      setListener(new AnimatorListenerAdapter() {
-        @Override
-        public void onAnimationCancel(Animator animation) {
-          onAnimationEnd(animation);
-        }
+          setDuration(500).
+          translationXBy(Math.copySign(getWidth() * 1.5f, sign)).
+          translationYBy(getHeight() / 4).
+          rotation(Math.copySign(45, sign)).
+          setInterpolator(new DecelerateInterpolator()).
+          setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+              onAnimationEnd(animation);
+            }
 
-        @Override
-        public void onAnimationEnd(Animator animation) {
-          //TODO fix issue when swipe too fast
-          recycleView(mCurrentView);
-          ++mCurrentAdapterPosition;
-          ensureFull();
-          checkStarvation();
-        }
-      });
+            @Override
+            public void onAnimationEnd(Animator animation) {
+              //TODO fix issue when swipe too fast
+              recycleView(mCurrentView);
+              ++mCurrentAdapterPosition;
+              ensureFull();
+              checkStarvation();
+            }
+          });
 
 }
 

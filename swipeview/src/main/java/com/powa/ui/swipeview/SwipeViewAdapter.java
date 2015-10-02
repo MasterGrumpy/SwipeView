@@ -57,14 +57,18 @@ public long getItemId(int position) {
 
 @Override
 public View getView(int position, View convertView, ViewGroup parent) {
-  return getView(position, (T) getItem(position), convertView, parent);
+  T h = (T) getItem(position);
+  View v = getView(position, h, convertView, parent);
+  h.setView(v);
+  return v;
 }
 
-public int getItemPosition (ViewHolder item) {
+public int getItemPosition(ViewHolder item) {
   return mData.indexOf(item);
 }
 
 public abstract void onStarve(int position);
+
 public abstract View getView(int position, T viewHolder, View convertView, ViewGroup parent);
 
 }
