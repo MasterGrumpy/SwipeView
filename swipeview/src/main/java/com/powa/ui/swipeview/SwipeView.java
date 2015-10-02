@@ -337,6 +337,10 @@ public void setSelection(int position) {
 
 public void dismissCurrentView(boolean like) {
   ViewHolder viewHolder = (ViewHolder) mAdapter.getItem(mCurrentAdapterPosition);
+  if (viewHolder != null) {
+    return;
+  }
+
   if (viewHolder.getEventListener() != null) {
     if (like) viewHolder.getEventListener().onLike(viewHolder);
     else viewHolder.getEventListener().onDislike(viewHolder);

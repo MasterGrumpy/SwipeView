@@ -4,8 +4,12 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.powa.ui.swipeview.SwipeView;
+import com.powa.ui.swipeview.ViewHolder;
+
+import java.util.ArrayList;
 
 public class SwipeActivity extends AppCompatActivity {
 
@@ -16,10 +20,31 @@ protected void onCreate(Bundle savedInstanceState) {
 
   SwipeView v = (SwipeView) findViewById(R.id.swipeView);
   ColorViewAdapter adapter = new ColorViewAdapter(this);
-  adapter.add(new ColorViewHolder("red"));
-  adapter.add(new ColorViewHolder("blue"));
-  adapter.add(new ColorViewHolder("green"));
-  adapter.add(new ColorViewHolder("yellow"));
+
+  String[] colors = {
+    "red", "blue", "yellow", "green", "black", "grey"
+  };
+
+  for (int i = 0; i < 30; ++i) {
+    ColorViewHolder h = new ColorViewHolder(colors[i%colors.length]);
+    h.setOnEventListener(new ViewHolder.OnEventListener() {
+      @Override
+      public void onLike(ViewHolder viewHolder) {
+        Toast.makeText(SwipeActivity.this, "Like",Toast.LENGTH_SHORT).show();
+      }
+
+      @Override
+      public void onDislike(ViewHolder viewHolder) {
+        Toast.makeText(SwipeActivity.this, "DisLike",Toast.LENGTH_SHORT).show();
+      }
+
+      @Override
+      public void OnClick(ViewHolder viewHolder) {
+
+      }
+    });
+    adapter.add(h);
+  }
   v.setAdapter(adapter);
 }
 
