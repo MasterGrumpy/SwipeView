@@ -31,13 +31,12 @@ public View getView(int position, ColorViewHolder c, View convertView, ViewGroup
 @Override
 public void onStarve(int position) {
   String[] colors = {
-    "red", "blue", "yellow", "green", "black", "grey"
+    "#eeeeee", "#ee99ee", "#ee9999", "#999999", "#559999", "#555599", "#555555"
   };
 
   for (int i = 0; i < position; ++i) {
     mData.remove(0);
   }
-
 
   for (int i = 0; i < 10; ++i) {
     ColorViewHolder h = new ColorViewHolder(colors[i%colors.length], ""+mCpt++);

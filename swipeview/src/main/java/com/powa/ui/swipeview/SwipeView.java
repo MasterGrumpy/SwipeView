@@ -60,6 +60,7 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
       }
     }
     ensureFull();
+    initCurrentView();
   }
 
   @Override
@@ -117,6 +118,7 @@ public void setAdapter(SwipeViewAdapter adapter) {
   mAdapter = adapter;
 
   ensureFull();
+  initCurrentView();
 
   adapter.registerDataSetObserver(mDataSetObserver);
 }
@@ -139,22 +141,20 @@ private void ensureFull() {
     addViewInLayout(view, 0, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT), true);
   }
 
-  updateCurrentView();
   requestLayout();
 }
 
-private void updateCurrentView() {
+private void initCurrentView() {
   if (mCurrentAdapterPosition < 0 || mAdapter == null || mCurrentAdapterPosition >= getAdapter().getCount()) {
     mCurrentView = null;
     mCurrentViewHolder = null;
     mNextView = null;
-  } else {
-    final int currentViewPosition = getChildCount() - 1; // always the last view of the stack
-
-    mCurrentView = getChildAt(currentViewPosition);
-    mCurrentViewHolder = (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition);
-    mNextView = getChildAt(currentViewPosition - 1);
+    return;
   }
+
+  mCurrentViewHolder = (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition);
+  mCurrentView = mCurrentViewHolder.getView();
+  mNextView = getChildAt(getPositionForView(mCurrentView) - 1);
 
   if (mCurrentView != null) {
     mCurrentView.setLayerType(LAYER_TYPE_HARDWARE, null);
@@ -376,7 +376,14 @@ public void dismissCurrentView(boolean like) {
   }
 
   int sign = like ? 1 : -1;
-  mCurrentView.animate().
+  final View view = mCurrentView;
+
+  ensureFull();
+  ++mCurrentAdapterPosition;
+  initCurrentView();
+  checkStarvation();
+
+  view.animate().
           setDuration(500).
           translationXBy(Math.copySign(getWidth() * 1.5f, sign)).
           translationYBy(getHeight() / 4).
@@ -391,10 +398,7 @@ public void dismissCurrentView(boolean like) {
             @Override
             public void onAnimationEnd(Animator animation) {
               //TODO fix issue when swipe too fast
-              recycleView(mCurrentView);
-              ++mCurrentAdapterPosition;
-              ensureFull();
-              checkStarvation();
+              recycleView(view);
             }
           });
 
