@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 
-version = "0.0.9"
+version = "0.0.10"
 
 android {
     compileSdkVersion 23
