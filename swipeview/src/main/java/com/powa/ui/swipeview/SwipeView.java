@@ -7,6 +7,7 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -36,6 +37,8 @@ private int mCurrentAdapterPosition;
 private VelocityTracker mVelocityTracker;
 private Stack<View> mRecyclerViews = new Stack<>();
 
+private List<View> mAllViews = new ArrayList<>();
+
 private final DataSetObserver mDataSetObserver = new DataSetObserver() {
   @Override
   public void onChanged() {
@@ -56,10 +59,12 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
       }
 
       for (View v : toRemove) {
+        mAllViews.remove(v);
         recycleView(v);
       }
     }
     ensureFull();
+    Log.d("Blah", "should display a new pic");
     initCurrentView();
   }
 
@@ -130,15 +135,18 @@ public void setSwipeListener(SwipeListener l) {
 private void ensureFull() {
   int adapterCount = mAdapter.getCount();
   int currentAdapterPosition = mCurrentAdapterPosition;
-  for (int pos = getChildCount(); pos + currentAdapterPosition < adapterCount && pos < mMaxViewPreloaded; ++pos) {
+
+  int i = 0;
+  while (mAllViews.size() < mMaxViewPreloaded) {
     View view = null;
     if (!mRecyclerViews.isEmpty()) {
       view = mRecyclerViews.pop();
     }
-    view = mAdapter.getView(pos + currentAdapterPosition, view, this);
+    view = mAdapter.getView(currentAdapterPosition+mAllViews.size(), view, this);
     view.setVisibility(GONE);
     view.setLayerType(LAYER_TYPE_SOFTWARE, null);
     addViewInLayout(view, 0, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT), true);
+    mAllViews.add(view);
   }
 
   requestLayout();
@@ -154,6 +162,14 @@ private void initCurrentView() {
 
   mCurrentViewHolder = (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition);
   mCurrentView = mCurrentViewHolder.getView();
+
+  // case where we didn't create yet the view, but adapter isn't empty
+  if (mCurrentView == null) {
+    mNextView = null;
+    Log.d("Blah", "No more :(");
+    return;
+  }
+
   mNextView = getChildAt(getPositionForView(mCurrentView) - 1);
 
   if (mCurrentView != null) {
@@ -183,6 +199,7 @@ private void checkStarvation() {
 
 private void clear() {
   removeAllViewsInLayout();
+  mAllViews.clear();
   mCurrentAdapterPosition = 0;
   mCurrentView = null;
   mCurrentViewHolder = null;
@@ -378,8 +395,9 @@ public void dismissCurrentView(boolean like) {
   int sign = like ? 1 : -1;
   final View view = mCurrentView;
 
-  ensureFull();
+  mAllViews.remove(view);
   ++mCurrentAdapterPosition;
+  ensureFull();
   initCurrentView();
   checkStarvation();
 
