@@ -132,7 +132,6 @@ public void setSwipeListener(SwipeListener l) {
 }
 
 private void ensureFull() {
-  int adapterCount = mAdapter.getCount();
   int currentAdapterPosition = mCurrentAdapterPosition;
 
   int i = 0;
@@ -142,6 +141,8 @@ private void ensureFull() {
       view = mRecyclerViews.pop();
     }
     view = mAdapter.getView(currentAdapterPosition+mAllViews.size(), view, this);
+    if (view == null) break;
+
     view.setVisibility(GONE);
     view.setLayerType(LAYER_TYPE_SOFTWARE, null);
     addViewInLayout(view, 0, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT), true);

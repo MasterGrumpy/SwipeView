@@ -59,6 +59,10 @@ public long getItemId(int position) {
 @Override
 public View getView(int position, View convertView, ViewGroup parent) {
   T h = (T) getItem(position);
+  if (h == null) {
+    return null;
+  }
+
   View v = getView(position, h, convertView, parent);
   h.setView(v);
   return v;
