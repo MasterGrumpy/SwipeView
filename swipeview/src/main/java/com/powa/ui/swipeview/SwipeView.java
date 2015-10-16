@@ -64,7 +64,6 @@ private final DataSetObserver mDataSetObserver = new DataSetObserver() {
       }
     }
     ensureFull();
-    Log.d("Blah", "should display a new pic");
     initCurrentView();
   }
 
@@ -166,7 +165,6 @@ private void initCurrentView() {
   // case where we didn't create yet the view, but adapter isn't empty
   if (mCurrentView == null) {
     mNextView = null;
-    Log.d("Blah", "No more :(");
     return;
   }
 
@@ -381,15 +379,10 @@ public void setSelection(int position) {
   throw new UnsupportedOperationException();
 }
 
-public void dismissCurrentView(boolean like) {
-  ViewHolder viewHolder = (ViewHolder) mAdapter.getItem(mCurrentAdapterPosition);
+public void dismissCurrentView(final boolean like) {
+  final ViewHolder viewHolder = (ViewHolder) mAdapter.getItem(mCurrentAdapterPosition);
   if (viewHolder == null) {
     return;
-  }
-
-  if (viewHolder.getEventListener() != null) {
-    if (like) viewHolder.getEventListener().onLike(viewHolder);
-    else viewHolder.getEventListener().onDislike(viewHolder);
   }
 
   int sign = like ? 1 : -1;
@@ -417,6 +410,11 @@ public void dismissCurrentView(boolean like) {
             public void onAnimationEnd(Animator animation) {
               //TODO fix issue when swipe too fast
               recycleView(view);
+
+              if (viewHolder.getEventListener() != null) {
+                if (like) viewHolder.getEventListener().onLike(viewHolder);
+                else viewHolder.getEventListener().onDislike(viewHolder);
+              }
             }
           });
 

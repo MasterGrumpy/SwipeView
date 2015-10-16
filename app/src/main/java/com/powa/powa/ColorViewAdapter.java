@@ -35,21 +35,20 @@ public void onStarve(int position) {
     "#eeeeee", "#ee99ee", "#ee9999", "#999999", "#559999", "#555599", "#555555"
   };
 
-  for (int i = 0; i < position; ++i) {
-    mData.remove(0);
-  }
-
   for (int i = 0; i < 10; ++i) {
     ColorViewHolder h = new ColorViewHolder(colors[i%colors.length], ""+mCpt++);
     h.setOnEventListener(new ViewHolder.OnEventListener() {
       @Override
       public void onLike(ViewHolder viewHolder) {
         Toast.makeText(getContext(), "Like", Toast.LENGTH_SHORT).show();
+        remove((ColorViewHolder)viewHolder);
+
       }
 
       @Override
       public void onDislike(ViewHolder viewHolder) {
         Toast.makeText(getContext(), "Dislike",Toast.LENGTH_SHORT).show();
+        remove((ColorViewHolder)viewHolder);
       }
 
       @Override
