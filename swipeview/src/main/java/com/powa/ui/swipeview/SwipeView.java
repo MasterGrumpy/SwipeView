@@ -393,7 +393,6 @@ public void dismissCurrentView(final boolean like) {
   ++mCurrentAdapterPosition;
   ensureFull();
   initCurrentView();
-  checkStarvation();
 
   view.animate().
           setDuration(500).
@@ -416,6 +415,7 @@ public void dismissCurrentView(final boolean like) {
                 if (like) viewHolder.getEventListener().onLike(viewHolder);
                 else viewHolder.getEventListener().onDislike(viewHolder);
               }
+              checkStarvation();
             }
           });
 
