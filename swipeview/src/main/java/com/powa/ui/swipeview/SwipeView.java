@@ -372,12 +372,11 @@ private void recycleView(View v) {
 
 @Override
 public View getSelectedView() {
-  throw new UnsupportedOperationException();
+  return null;
 }
 
 @Override
 public void setSelection(int position) {
-  throw new UnsupportedOperationException();
 }
 
 public void dismissCurrentView(final boolean like) {
