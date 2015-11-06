@@ -222,6 +222,10 @@ public void setMaxViewPreloaded(int max) {
   mMaxViewPreloaded = Math.max(2, max);
 }
 
+public ViewHolder getCurentViewHolder() {
+  return  mCurrentViewHolder;
+}
+
 @Override
 protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
   super.onMeasure(widthMeasureSpec, heightMeasureSpec);
