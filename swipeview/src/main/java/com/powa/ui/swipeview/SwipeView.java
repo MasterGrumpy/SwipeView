@@ -222,7 +222,7 @@ public void setMaxViewPreloaded(int max) {
   mMaxViewPreloaded = Math.max(2, max);
 }
 
-public ViewHolder getCurentViewHolder() {
+public ViewHolder getCurrentViewHolder() {
   return  mCurrentViewHolder;
 }
 
