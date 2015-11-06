@@ -30,6 +30,7 @@ private int mMaxViewPreloaded = 4;
 private float mLastTouchX;
 private float mLastTouchY;
 private ViewHolder mCurrentViewHolder;
+private ViewHolder mNextViewHolder;
 private View mCurrentView;
 private View mNextView;
 private int mTouchSlop;
@@ -157,6 +158,7 @@ private void initCurrentView() {
     mCurrentView = null;
     mCurrentViewHolder = null;
     mNextView = null;
+    mNextViewHolder = null;
     return;
   }
 
@@ -166,10 +168,16 @@ private void initCurrentView() {
   // case where we didn't create yet the view, but adapter isn't empty
   if (mCurrentView == null) {
     mNextView = null;
+    mNextViewHolder = null;
     return;
   }
 
-  mNextView = getChildAt(getPositionForView(mCurrentView) - 1);
+  mNextViewHolder = (ViewHolder) getAdapter().getItem(mCurrentAdapterPosition+1);
+  if (mNextViewHolder == null) {
+    mNextView = null;
+  } else {
+    mNextView = mNextViewHolder.getView();
+  }
 
   if (mCurrentView != null) {
     mCurrentView.setLayerType(LAYER_TYPE_HARDWARE, null);
@@ -203,6 +211,7 @@ private void clear() {
   mCurrentView = null;
   mCurrentViewHolder = null;
   mNextView = null;
+  mNextViewHolder = null;
 }
 
 public int getMaxViewPreloaded() {
@@ -267,7 +276,7 @@ public boolean onTouchEvent(MotionEvent event) {
       float dy = y - mLastTouchY;
       float xProgress = Math.max(-1f, Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth()));
       float yProgress = Math.max(-1.f, Math.min(1.f, mCurrentView.getTranslationY() / (float) mCurrentView.getHeight()));
-      mSwipeListener.OnSwipe(mCurrentView, mNextView, xProgress, yProgress, dx, dy);
+      mSwipeListener.OnSwipe(mCurrentViewHolder, mNextViewHolder, xProgress, yProgress, dx, dy);
       mLastTouchX = x;
       mLastTouchY = y;
       break;
@@ -296,7 +305,7 @@ public boolean onTouchEvent(MotionEvent event) {
       float xProgress = Math.max(-1f, Math.min(1.f, mCurrentView.getTranslationX() / (float) mCurrentView.getWidth()));
       float yProgress = Math.max(-1.f, Math.min(1.f, mCurrentView.getTranslationY() / (float) mCurrentView.getHeight()));
 
-      SwipeListener.SwipeEvent swipeEvent = mSwipeListener.OnSwipeEnd(mCurrentView, mNextView, xProgress, yProgress, xVelocity, yVelocity);
+      SwipeListener.SwipeEvent swipeEvent = mSwipeListener.OnSwipeEnd(mCurrentViewHolder, mNextViewHolder, xProgress, yProgress, xVelocity, yVelocity);
 
       switch (swipeEvent) {
         case NONE:
@@ -337,7 +346,7 @@ public boolean onInterceptTouchEvent(MotionEvent event) {
 
       // filter micro movements
       if (Math.abs(dx) > mTouchSlop || Math.abs(dy) > mTouchSlop) {
-        mSwipeListener.OnSwipeStart(mCurrentView, mNextView);
+        mSwipeListener.OnSwipeStart(mCurrentViewHolder, mNextViewHolder);
         return true;
       }
       return false;
@@ -422,18 +431,18 @@ public void dismissCurrentView(final boolean like) {
 
 public class DefaultSwipeListener implements SwipeListener {
   @Override
-  public void OnSwipeStart(View currentView, View nextView) {
+  public void OnSwipeStart(ViewHolder currentView, ViewHolder nextView) {
   }
 
   @Override
-  public void OnSwipe(View currentView, View nextView, float px, float py, float dx, float dy) {
-    currentView.setTranslationX(currentView.getTranslationX() + dx);
-    currentView.setTranslationY(currentView.getTranslationY() + dy);
-    currentView.setRotation(45 * px);
+  public void OnSwipe(ViewHolder currentView, ViewHolder nextView, float px, float py, float dx, float dy) {
+    currentView.getView().setTranslationX(currentView.getView().getTranslationX() + dx);
+    currentView.getView().setTranslationY(currentView.getView().getTranslationY() + dy);
+    currentView.getView().setRotation(45 * px);
   }
 
   @Override
-  public SwipeEvent OnSwipeEnd(View currentView, View nextView, float px, float py, float vx, float vy) {
+  public SwipeEvent OnSwipeEnd(ViewHolder currentView, ViewHolder nextView, float px, float py, float vx, float vy) {
     // TODO(grumpy-dev): make them parameters
     final float minVelocity = 0.5f;
     final float minProgress = 0.2f;
